@@ -1,0 +1,16 @@
+{
+  "name": "Debounce",
+  "keywords": "debounce, button",
+  "description": "Button Debounce library for Arduino",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/marians20/arduino_projects"
+  },
+  "frameworks": "arduino",
+  "platforms":
+  [
+    "atmelavr",
+    "teensy"
+  ]
+}

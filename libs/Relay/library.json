@@ -1,0 +1,16 @@
+{
+  "name": "Relay Control library for Arduino",
+  "keywords": "relay",
+  "description": "Controls a relay",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/marians20/arduino_projects"
+  },
+  "frameworks": "arduino",
+  "platforms":
+  [
+    "atmelavr",
+    "teensy"
+  ]
+}
