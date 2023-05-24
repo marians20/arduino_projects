@@ -11,6 +11,11 @@ Relay::Relay(int relayPin, int ledPin) {
   _ledPin = ledPin;
 }
 
+Relay::Relay(int relayPin) {
+  _relayPin = relayPin;
+  _ledPin = 0;
+}
+
 void Relay::setup() {
   pinMode(_ledPin, OUTPUT);
   pinMode(_relayPin, OUTPUT);
