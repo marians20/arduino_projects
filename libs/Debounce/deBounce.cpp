@@ -15,6 +15,7 @@ DebounceButton::DebounceButton(int b_pin, unsigned long debounceTime, unsigned c
 
 void DebounceButton::setupButton() {
   pinMode(_b_pin, _inputMode);
+  _debounce = 0;
 }
 
 int DebounceButton::read() {
