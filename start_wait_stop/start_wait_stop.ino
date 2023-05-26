@@ -3,33 +3,33 @@
   then waits estabilished time (DELAY)
   then turns the rely back off
 */
-
-#include "StopwatchLib.h"
+#include <LiquidCrystal.h>
+#include <DHT.h>
+#include <StopwatchLib.h>
 #include "deBounce.h"
-#include "relay.h"
-#include "pins.h"
+#include <relay.h>
+#include "usedPins.h"
+#include "durationResolver.h";
 
-#define RELAY D2
-#define BUTTON D3
-
-#define POTENTIOMETER A7
 #define MIN_DELAY_SECONDS 5
 #define MAX_DELAY_SECONDS 3600
-#define MIN_ANALOG_VALUE 0
-#define MAX_ANALOG_VALUE 1023
 
 Stopwatch stopwatch;
+DurationResolver durationResolver(POTENTIOMETER, MIN_DELAY_SECONDS, MAX_DELAY_SECONDS);
 Relay* relay;
 DebounceButton* startButton(BUTTON, 50, INPUT_PULLUP);
+LiquidCrystal lcd(LCD_RS, LCD_EN, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
 
-unsigned int delaySeconds;
+unsigned int delaySeconds = 0;
 unsigned int oldElapsedSeconds = 0;
+unsigned int elapsedSeconds = 0;
 
-// finear scaling [f(x) = ax + b] parameters used for transforming analog value into duration
-double a = 1. * (MAX_DELAY_SECONDS - MIN_DELAY_SECONDS) / (MAX_ANALOG_VALUE - MIN_ANALOG_VALUE);
-double b = 1. * MIN_DELAY_SECONDS - a * MIN_ANALOG_VALUE;
+#define DHTTYPE DHT22      // DHT 22  (AM2302)
+DHT dht(DHTPIN, DHTTYPE);  //// Initialize DHT sensor for normal 16mhz Arduino
+
 
 void setup() {
+  
   relay = new Relay(RELAY, LED_BUILTIN);
   relay->setup();
   relay->turnOff();
@@ -38,36 +38,75 @@ void setup() {
   startButton->setupButton();
   Serial.begin(9600);
 
-  pinMode(POTENTIOMETER, INPUT_PULLUP);
+  durationResolver.begin();
 
   stopwatch.Reset();
+  lcd.begin(16, 4);
+  lcd.print("Arduino");
+
+  dht.begin();
 }
 
 void loop() {
-  //1. Adjust delay
-  // f(x) = ax + b
-  delaySeconds = a * analogRead(POTENTIOMETER) + b;
+  delaySeconds = durationResolver.getDuration();
 
   //2. turn relay on when button pushed
   if (startButton->read()) {
+    Serial.println("Button pushed!!!");
     relay->turnOn();
     stopwatch.Reset();
   }
 
   //3. turn relay off after time elapsed
-  stopwatch.Update();
-  int elapsed = stopwatch.GetElapsed() / 1e6;
+  do {
+    stopwatch.Update();
+    elapsedSeconds = stopwatch.GetElapsed() / 1e6;
+  } while (elapsedSeconds > MAX_DELAY_SECONDS);
+
   // one per second
-  if (elapsed != oldElapsedSeconds) {
-    oldElapsedSeconds = elapsed;
-    Serial.print(elapsed);
-    Serial.print(" / ");
-    Serial.println(delaySeconds);
+  if (elapsedSeconds != oldElapsedSeconds) {
+    oldElapsedSeconds = elapsedSeconds;
+    dispalyTimerStatus(relay->isOn(), delaySeconds, elapsedSeconds);
+    displayTemperature();
   }
   // 4000 comes from a strange behaviour:
   // At first loop, stopwatch.GetElapsed() returns a value greater than 4e10.
-  if (elapsed >= delaySeconds && elapsed < 4000) {
+  if (elapsedSeconds >= delaySeconds && elapsedSeconds < 4000) {
     relay->turnOff();
     stopwatch.Reset();
   }
+}
+
+void dispalyTimerStatus(bool isRelayOn, int delaySeconds, int elapsedSeconds) {
+  lcd.setCursor(0,0);
+  if(!isRelayOn) {
+    lcd.print("Ready(");
+    lcd.print(delaySeconds);
+    lcd.print(")");
+  } else {
+     lcd.print("Running(");
+    lcd.print(delaySeconds-elapsedSeconds);
+    lcd.print(")");   
+  }
+  lcd.print("                ");
+}
+
+void displayTemperature() {
+    auto hum = dht.readHumidity();
+    auto temp = dht.readTemperature();
+
+    lcd.setCursor(0,1);
+    lcd.print(temp);
+    lcd.print((char)223);
+    lcd.print("C ");
+    lcd.print(hum);
+    lcd.print("%");
+    lcd.print("     ");
+
+    //Print temp and humidity values to serial monitor
+    Serial.print("Humidity: ");
+    Serial.print(hum);
+    Serial.print(" %, Temp: ");
+    Serial.print(temp);
+    Serial.println(" Celsius");
 }

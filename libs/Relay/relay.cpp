@@ -6,12 +6,12 @@
 #include "WProgram.h"
 #endif
 
-Relay::Relay(int relayPin, int ledPin) {
+Relay::Relay(int relayPin, int ledPin) : _relayPin(relayPin), _ledPin(ledPin) {
   _relayPin = relayPin;
   _ledPin = ledPin;
 }
 
-Relay::Relay(int relayPin) {
+Relay::Relay(int relayPin) : Relay(relayPin, 0){
   _relayPin = relayPin;
   _ledPin = 0;
 }
@@ -45,6 +45,6 @@ void Relay::toggle() {
   }
 }
 
-bool Relay::isOn() {
+auto Relay::isOn() -> bool {
   return _on;
 }

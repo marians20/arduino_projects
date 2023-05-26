@@ -17,7 +17,7 @@ class Relay {
     void turnOn();
     void turnOff();
     void toggle();
-    bool isOn();
+    auto isOn() -> bool;
   private:
     int _relayPin;
     int _ledPin;
