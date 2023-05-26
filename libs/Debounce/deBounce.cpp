@@ -5,10 +5,8 @@
 #include "WProgram.h"
 #endif
 
-DebounceButton::DebounceButton(int b_pin, unsigned long debounceTime, unsigned char inputMode) {
-  _b_pin = b_pin;
-  _debounceTime = debounceTime;
-  _inputMode = inputMode;
+DebounceButton::DebounceButton(int b_pin, unsigned long debounceTime, unsigned char inputMode)
+: _b_pin(b_pin), _debounceTime(debounceTime), _inputMode(inputMode) {
   _buttonPressedLevel = inputMode == INPUT_PULLUP ? LOW : HIGH;
   pinMode(_b_pin, _inputMode);
 }

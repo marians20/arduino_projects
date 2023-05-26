@@ -11,11 +11,9 @@ class DurationResolver {
   public:
     DurationResolver(unsigned int potentiometerPin, unsigned int minDuration, unsigned int maxDuration);
     void begin();
-    unsigned int getDuration();
-    unsigned int getMinDuration();
-    unsigned int getMaxDuration();
+    auto getDuration() -> unsigned int;
   private:
-  unsigned int _potentiometerPin;
+    unsigned int _potentiometerPin;
     unsigned int _minDuration;
     unsigned int _maxDuration;
     double _a;
