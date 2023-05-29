@@ -59,7 +59,11 @@ void loop() {
   //2. turn relay on when button pushed
   if (startButton->read()) {
     Serial.println("Button pushed!!!");
-    relay->turnOn();
+    if (relay->isOn()) {
+      relay->turnOff();
+    } else {
+      relay->turnOn();
+    }
     stopwatch.Reset();
   }
 

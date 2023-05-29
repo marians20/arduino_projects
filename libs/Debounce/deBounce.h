@@ -18,6 +18,6 @@ private:
   unsigned long _debounceTime;
   unsigned char _inputMode;
   unsigned long _debounce;
-
+  uint8_t _status;
 };
 #endif

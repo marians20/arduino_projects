@@ -3,6 +3,7 @@
 #include <Adafruit_SSD1306.h>
 
 #include "oledDisplay.h"
+#include "utils.h";
 
 #define SCREEN_WIDTH 128  // OLED display width,  in pixels
 #define SCREEN_HEIGHT 32  // OLED display height, in pixels
@@ -51,17 +52,15 @@ void OledDisplay::dispalyTimerStatus(bool isRelayOn, int delaySeconds, int elaps
   _oled->clearDisplay();
   _oled->setCursor(0, 0);
   if (!isRelayOn) {
-    _oled->print("Wait(");
-    _oled->print(delaySeconds);
-    _oled->print(")");
+    _oled->print("  ");
+    _oled->print(secondsToTimeString(delaySeconds));
 
     Serial.print("Ready(");
-    Serial.print(delaySeconds);
-    Serial.println(")");
+    Serial.print(secondsToTimeString(delaySeconds));
+    Serial.println();
   } else {
-    _oled->print("ON(");
-    _oled->print(delaySeconds - elapsedSeconds);
-    _oled->print(")");
+    _oled->print("* ");
+    _oled->print(secondsToTimeString(delaySeconds - elapsedSeconds));
 
     Serial.print("Running(");
     Serial.print(delaySeconds - elapsedSeconds);

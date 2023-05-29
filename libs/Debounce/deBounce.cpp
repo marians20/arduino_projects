@@ -6,14 +6,14 @@
 #endif
 
 DebounceButton::DebounceButton(int b_pin, unsigned long debounceTime, unsigned char inputMode)
-: _b_pin(b_pin), _debounceTime(debounceTime), _inputMode(inputMode) {
+  : _b_pin(b_pin), _debounceTime(debounceTime), _inputMode(inputMode), _debounce(0) {
   _buttonPressedLevel = inputMode == INPUT_PULLUP ? LOW : HIGH;
-  pinMode(_b_pin, _inputMode);
 }
 
 void DebounceButton::setupButton() {
   pinMode(_b_pin, _inputMode);
-  _debounce = 0;
+  _status = LOW;
+  _debounce = millis();
 }
 
 int DebounceButton::read() {
@@ -24,9 +24,12 @@ int DebounceButton::read() {
   if (digitalRead(_b_pin) == _buttonPressedLevel) {
     if (millis() - _debounce > _debounceTime) {
       _debounce = millis();
-      return HIGH;
-    } else {
+      _status = HIGH;
       return LOW;
     }
+  } else {
+    auto returnValue = _status;
+    _status = LOW;
+    return returnValue;
   }
 }
