@@ -5,7 +5,7 @@
 */
 #include <LiquidCrystal.h>
 #include <StopwatchLib.h>
-#include <deBounce.h>
+#include "deBounce.h"
 #include <relay.h>
 #include "usedPins.h"
 #include "idurationResolver.h"
@@ -22,7 +22,7 @@
 Stopwatch stopwatch;
 IDurationResolver* durationResolver;
 Relay* relay;
-DebounceButton* startButton(BUTTON, 50, INPUT_PULLUP);
+DebounceButton* startButton(BUTTON, 500, INPUT_PULLUP);
 IDisplay* display;
 IThermometer* thermometer;
 
@@ -41,16 +41,15 @@ void createComponents() {
 void setup() {
   createComponents();
   Serial.begin(9600);
+
   relay->setup();
   relay->turnOff();
-
-  startButton->setupButton();
-  Serial.begin(9600);
 
   durationResolver->begin();
 
   stopwatch.Reset();
   display->begin();
+  startButton->setupButton();
   thermometer->begin();
 }
 

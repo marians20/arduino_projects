@@ -51,7 +51,7 @@ void OledDisplay::dispalyTimerStatus(bool isRelayOn, int delaySeconds, int elaps
   _oled->clearDisplay();
   _oled->setCursor(0, 0);
   if (!isRelayOn) {
-    _oled->print("Ready(");
+    _oled->print("Wait(");
     _oled->print(delaySeconds);
     _oled->print(")");
 
@@ -59,7 +59,7 @@ void OledDisplay::dispalyTimerStatus(bool isRelayOn, int delaySeconds, int elaps
     Serial.print(delaySeconds);
     Serial.println(")");
   } else {
-    _oled->print("Running(");
+    _oled->print("ON(");
     _oled->print(delaySeconds - elapsedSeconds);
     _oled->print(")");
 
@@ -68,5 +68,5 @@ void OledDisplay::dispalyTimerStatus(bool isRelayOn, int delaySeconds, int elaps
     Serial.println(")");
   }
   _oled->print("                ");
-  _oled->display();
+  //_oled->display();
 }
