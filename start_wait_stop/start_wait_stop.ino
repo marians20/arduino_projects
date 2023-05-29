@@ -13,7 +13,7 @@
 #include "iDisplay.h"
 #include "potentiometerDurationResolver.h"
 #include "thermometer.h"
-#include "lcdDisplay.h"
+#include "oledDisplay.h"
 
 #define MIN_DELAY_SECONDS 5
 #define MAX_DELAY_SECONDS 3600
@@ -34,13 +34,13 @@ void createComponents() {
   relay = new Relay(RELAY, LED_BUILTIN);
   startButton = new DebounceButton(BUTTON, 50, INPUT_PULLUP);
   durationResolver = new PotentiometerDurationResolver(POTENTIOMETER, MIN_DELAY_SECONDS, MAX_DELAY_SECONDS);
-  display = new LcdDisplay(LCD_RS, LCD_EN, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
+  display = new OledDisplay();
   thermometer = new Thermometer(DHTPIN, DHTTYPE);
 }
 
 void setup() {
   createComponents();
-
+  Serial.begin(9600);
   relay->setup();
   relay->turnOff();
 
@@ -76,6 +76,7 @@ void loop() {
     display->dispalyTimerStatus(relay->isOn(), delaySeconds, elapsedSeconds);
     display->showTemperatureAndHumidity(thermometer->read());
   }
+
   // 4000 comes from a strange behaviour:
   // At first loop, stopwatch.GetElapsed() returns a value greater than 4e10.
   if (elapsedSeconds >= delaySeconds && elapsedSeconds < 4000) {

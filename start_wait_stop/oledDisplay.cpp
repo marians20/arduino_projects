@@ -22,34 +22,51 @@ void OledDisplay::begin() {
       ;
   }
 
-  delay(2000);         // wait for initializing
-  _oled->clearDisplay(); // clear display
+  delay(2000);            // wait for initializing
+  _oled->clearDisplay();  // clear display
 
-  _oled->setTextSize(1);          // text size
-  _oled->setTextColor(WHITE);     // text color
+  _oled->setTextSize(2);       // text size
+  _oled->setTextColor(WHITE);  // text color
   _oled->setCursor(0, 10);
 }
 
 void OledDisplay::showTemperatureAndHumidity(ThermometerData data) {
-  _oled->setCursor(0, 1);
-  _oled->print(data.temperature);
-  _oled->print((char)223);
+  _oled->setCursor(0, 18);
+  _oled->print((int)data.temperature);
+  _oled->print((char)247);
   _oled->print("C ");
-  _oled->print(data.humidity);
+  _oled->print((int)data.humidity);
   _oled->print("%");
   _oled->print("     ");
+  _oled->display();
+
+  Serial.print(data.temperature);
+  Serial.print((char)223);
+  Serial.print("C ");
+  Serial.print(data.humidity);
+  Serial.println("%");
 }
 
 void OledDisplay::dispalyTimerStatus(bool isRelayOn, int delaySeconds, int elapsedSeconds) {
+  _oled->clearDisplay();
   _oled->setCursor(0, 0);
   if (!isRelayOn) {
     _oled->print("Ready(");
     _oled->print(delaySeconds);
     _oled->print(")");
+
+    Serial.print("Ready(");
+    Serial.print(delaySeconds);
+    Serial.println(")");
   } else {
     _oled->print("Running(");
     _oled->print(delaySeconds - elapsedSeconds);
     _oled->print(")");
+
+    Serial.print("Running(");
+    Serial.print(delaySeconds - elapsedSeconds);
+    Serial.println(")");
   }
   _oled->print("                ");
+  _oled->display();
 }

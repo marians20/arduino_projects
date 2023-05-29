@@ -7,7 +7,7 @@
 #include "WProgram.h"
 #endif
 
-#include <LiquidCrystal.h>
+#include <Adafruit_SSD1306.h>
 #include "iDisplay.h"
 
 class OledDisplay: public IDisplay {
