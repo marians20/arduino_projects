@@ -10,6 +10,7 @@
 struct IDurationResolver {
     virtual void begin() = 0;
     virtual auto getDuration() -> unsigned int = 0;
+    virtual auto loop() -> void;
 };
 
 #endif

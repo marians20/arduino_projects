@@ -11,13 +11,15 @@
 #include "idurationResolver.h"
 #include "iThermometer.h"
 #include "iDisplay.h"
-#include "potentiometerDurationResolver.h"
+#include "encoderDurationResolver.h"
 #include "thermometer.h"
 #include "oledDisplay.h"
 
-#define MIN_DELAY_SECONDS 5
-#define MAX_DELAY_SECONDS 3600
+#define MIN_DELAY_SECONDS     5
+#define MAX_DELAY_SECONDS     3600
+#define DEFAULT_DELAY_SECONDS 900
 #define DHTTYPE DHT22
+//uint8_t sw, uint8_t dt, uint8_t ck, unsigned int minDuration, unsigned int maxDuration, unsigned int defaultDuration
 
 Stopwatch stopwatch;
 IDurationResolver* durationResolver;
@@ -33,7 +35,7 @@ unsigned int elapsedSeconds = 0;
 void createComponents() {
   relay = new Relay(RELAY, LED_BUILTIN);
   startButton = new DebounceButton(BUTTON, 50, INPUT_PULLUP);
-  durationResolver = new PotentiometerDurationResolver(POTENTIOMETER, MIN_DELAY_SECONDS, MAX_DELAY_SECONDS);
+  durationResolver = new EncoderDurationResolver(SW, DT, CK, MIN_DELAY_SECONDS, MAX_DELAY_SECONDS, DEFAULT_DELAY_SECONDS);
   display = new OledDisplay();
   thermometer = new Thermometer(DHTPIN, DHTTYPE);
 }
@@ -86,4 +88,6 @@ void loop() {
     relay->turnOff();
     stopwatch.Reset();
   }
+
+  durationResolver->loop();
 }

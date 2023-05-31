@@ -49,6 +49,7 @@ void OledDisplay::showTemperatureAndHumidity(ThermometerData data) {
 }
 
 void OledDisplay::dispalyTimerStatus(bool isRelayOn, int delaySeconds, int elapsedSeconds) {
+  _oled->dim(true);
   _oled->clearDisplay();
   _oled->setCursor(0, 0);
   if (!isRelayOn) {

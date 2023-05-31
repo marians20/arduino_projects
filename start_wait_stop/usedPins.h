@@ -14,4 +14,9 @@
 #define LCD_D7   D7
 
 #define DHTPIN   D5
+
+//encoder
+#define   DT    D11
+#define   CK    D12
+#define   SW    D3
 #endif
