@@ -1,22 +1,27 @@
+//https://www.survivingwithandroid.com/esp32-rest-api-esp32-api-server/
 #include <ArduinoJson.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-
-#include <WiFi.h>
 #include <WebServer.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/timers.h"
+#include "freertos/event_groups.h"
 
 #include "thermometer.h"
+#include "network.h"
 #include "Progress.h"
 
-const char *SSID = "GoAway";
-const char *PWD = "D@n1elSiAnca";
+char *SSID = "GoAway";
+char *PWD = "D@n1elSiAnca";
 
 #define DHTPIN 23
 #define DHTTYPE DHT22
 
 Thermometer thermometer(DHTPIN, DHTTYPE);
+ThermometerData td(0, 0);
 
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
@@ -26,6 +31,10 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 #define SCREEN_ADDRESS 0x3C
 // create an OLED display object connected to I2C
 Adafruit_SSD1306 oled(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+Network network(SSID, PWD);
+
+WebServer server(80);
 
 StaticJsonDocument<250> jsonDocument;
 char buffer[250];
@@ -44,8 +53,6 @@ void add_json_object(char *tag, float value, char *unit) {
   obj["unit"] = unit;
 }
 
-WebServer server(80);
-
 bool _wiFiConnected = false;
 
 void setup() {
@@ -55,19 +62,22 @@ void setup() {
 
   setupLcd();
   setupOled();
-  setupWiFi();
+  network.Connect(OnNetworkConnected);
 
   Serial.println("Begining thermometer");
   thermometer.begin();
-
-  setup_routing();
+  //setupTask();
+  ReadSensorData(0);
+  setupRouting();
 }
 
-void setup_routing() {
-  if (WiFi.status() != WL_CONNECTED) {
-    return;
-  }
+void OnNetworkConnected() {
+  Serial.println("=============== Network Connected! ========================");
+  network.PrintNetworkInfo();
+  showIpAddressOnOled();
+}
 
+void setupRouting() {
   Serial.println("Setup Routing");
   server.on("/env", getEnv);
 
@@ -90,88 +100,33 @@ void setupOled() {
   oled.display();
   delay(2000);
   oled.clearDisplay();       // clear display
-  oled.setTextSize(2);       // set text size
+  oled.setTextSize(1);       // set text size
   oled.setTextColor(WHITE);  // set text color
   oled.setCursor(0, 0);      // set position to display
   oled.display();            // display on OLED
 }
 
-void setupWiFi() {
-  int status = WL_IDLE_STATUS;
-  int retriesCount = 10;
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(SSID, PWD);
-  while (isWiFiConnected() && retriesCount >= 0) {
-    retriesCount--;
-    status = WiFi.status();
-    Serial.print("WiFi Status: ");
-    Serial.print(status);
-    Serial.print(" ");
-    Serial.println(get_wifi_status(status));
-    delay(500);
-  }
-
-  if (retriesCount >= 0) {
-    Serial.println("Successfully connected to WiFi");
-    get_network_info();
-  } else {
-    Serial.println("Wifi Connection Failed");
-  }
-
-  showIpAddressOnOled();
-}
-
-void get_network_info() {
-  if (WiFi.status() != WL_CONNECTED) {
-    return;
-  }
-
-  Serial.print("[*] Network information for ");
-  Serial.println("SSID");
-
-  Serial.println("[+] BSSID : " + WiFi.BSSIDstr());
-  Serial.print("[+] Gateway IP : ");
-  Serial.println(WiFi.gatewayIP());
-  Serial.print("[+] Subnet Mask : ");
-  Serial.println(WiFi.subnetMask());
-  Serial.println((String) "[+] RSSI : " + WiFi.RSSI() + " dB");
-  Serial.print("[+] ESP32 IP : ");
-  Serial.println(WiFi.localIP());
-}
-
-void isWiFiConnected() {
-  return WiFi.status() == WL_CONNECTED;
-}
-
-String get_wifi_status(int status) {
-  switch (status) {
-    case WL_IDLE_STATUS:
-      return "WL_IDLE_STATUS";
-    case WL_SCAN_COMPLETED:
-      return "WL_SCAN_COMPLETED";
-    case WL_NO_SSID_AVAIL:
-      return "WL_NO_SSID_AVAIL";
-    case WL_CONNECT_FAILED:
-      return "WL_CONNECT_FAILED";
-    case WL_CONNECTION_LOST:
-      return "WL_CONNECTION_LOST";
-    case WL_CONNECTED:
-      return "WL_CONNECTED";
-    case WL_DISCONNECTED:
-      return "WL_DISCONNECTED";
-    default:
-      return "NO_WIFI_SHIELD";
-  }
+void setupTask() {	 	 
+  xTaskCreate(	 	 
+  ReadSensorData, 	 	 
+  "Read sensor data", 	 	 
+  1000, 	 	 
+  NULL, 	 	 
+  1, 	 	 
+  NULL 	 	 
+  );	 	 
 }
 
 void loop() {
   delay(2000);
-  auto td = thermometer.read();
-  jsonDocument.clear();  // Clear json buffer
-  add_json_object("temperature", td.getTemperature(), "°C");
-  add_json_object("humidity", td.getHumidity(), "%");
-  add_json_object("feelsLike", td.getHeatIndex(), "°C");
-  printThermometerData(td);
+
+  ReadSensorData(0);
+  if (!network.IsWiFiConnected()) {
+    network.Connect(OnNetworkConnected);
+  }
+
+  showIpAddressOnOled();
+  server.handleClient();
 }
 
 void printThermometerData(ThermometerData &td) {
@@ -233,11 +188,25 @@ void searchI2c() {
 void showIpAddressOnOled() {
   oled.clearDisplay();
   oled.setCursor(0, 0);
-  oled.print(WiFi.localIP());
+  oled.print(network.GetIpAddress());
   oled.display();
+}
+
+void ReadSensorData(void * parameter) {
+  //for (;;) {
+    td = thermometer.read();
+    printThermometerData(td);
+    // delay the task
+    //vTaskDelay(60000 / portTICK_PERIOD_MS);
+  //}
 }
 
 void getEnv() {
   Serial.println("Get env");
+  jsonDocument.clear();
+  add_json_object("temperature", td.getTemperature(), "°C");
+  add_json_object("humidity", td.getHumidity(), "%");
+  add_json_object("feelsLike", td.getHeatIndex(), "°C");
+  serializeJson(jsonDocument, buffer);
   server.send(200, "application/json", buffer);
 }
