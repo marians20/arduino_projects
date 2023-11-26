@@ -4,6 +4,7 @@
 
 #include "oledDisplay.h"
 #include "utils.h";
+#include "settings.h"
 
 #define SCREEN_WIDTH 128  // OLED display width,  in pixels
 #define SCREEN_HEIGHT 32  // OLED display height, in pixels
@@ -23,10 +24,11 @@ void OledDisplay::begin() {
       ;
   }
 
-  delay(2000);            // wait for initializing
-  _oled->clearDisplay();  // clear display
+  delay(2000);                 // wait for initializing
+  _oled->dim(true);
+  _oled->clearDisplay();       // clear display
 
-  _oled->setTextSize(2);       // text size
+  _oled->setTextSize(THERMOMETER ? 2 : 4);       // text size
   _oled->setTextColor(WHITE);  // text color
   _oled->setCursor(0, 10);
 }
@@ -49,24 +51,27 @@ void OledDisplay::showTemperatureAndHumidity(ThermometerData data) {
 }
 
 void OledDisplay::dispalyTimerStatus(bool isRelayOn, int delaySeconds, int elapsedSeconds) {
-  _oled->dim(true);
-  _oled->clearDisplay();
-  _oled->setCursor(0, 0);
+  _oled->setCursor(0, THERMOMETER ? 0: 0);
   if (!isRelayOn) {
-    _oled->print("  ");
     _oled->print(secondsToTimeString(delaySeconds));
 
-    Serial.print("Ready(");
-    Serial.print(secondsToTimeString(delaySeconds));
-    Serial.println();
+    Serial.print(" ");
+    Serial.println(secondsToTimeString(delaySeconds));
   } else {
-    _oled->print("* ");
+    _oled->setTextColor(SSD1306_BLACK, SSD1306_WHITE); // Draw 'inverse' text
     _oled->print(secondsToTimeString(delaySeconds - elapsedSeconds));
+    _oled->setTextColor(SSD1306_WHITE);
 
-    Serial.print("Running(");
-    Serial.print(delaySeconds - elapsedSeconds);
-    Serial.println(")");
+    Serial.print("*");
+    Serial.println(secondsToTimeString(delaySeconds - elapsedSeconds));
   }
   _oled->print("                ");
-  //_oled->display();
+}
+
+void OledDisplay::start() {
+  _oled->clearDisplay();
+}
+
+void OledDisplay::commit() {
+  _oled->display();
 }

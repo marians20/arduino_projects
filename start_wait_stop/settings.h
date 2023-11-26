@@ -2,6 +2,12 @@
 #define __USED_PINS_H__
 #include "pins.h"
 
+#define THERMOMETER false
+#define MIN_DELAY_SECONDS 5
+#define MAX_DELAY_SECONDS 3600
+#define DEFAULT_DELAY_SECONDS 900
+#define DHTTYPE DHT22
+
 #define RELAY D6
 #define BUTTON D3
 #define POTENTIOMETER A7

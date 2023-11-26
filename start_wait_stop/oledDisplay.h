@@ -17,6 +17,8 @@ class OledDisplay: public IDisplay {
     void begin();
     void showTemperatureAndHumidity(ThermometerData data);
     void dispalyTimerStatus(bool isRelayOn, int delaySeconds, int elapsedSeconds);
+      virtual void start();
+  virtual void commit();
   private:
     Adafruit_SSD1306* _oled;
 };
