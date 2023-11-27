@@ -1,4 +1,4 @@
-#include "durationResolver.h"
+#include "potentiometerDurationResolver.h"
 
 #define MIN_ANALOG_VALUE 0
 #define MAX_ANALOG_VALUE 1023
@@ -9,7 +9,7 @@
 #include "WProgram.h"
 #endif
 
-DurationResolver::DurationResolver(unsigned int potentiometerPin, unsigned int minDuration, unsigned int maxDuration)
+PotentiometerDurationResolver::PotentiometerDurationResolver(unsigned int potentiometerPin, unsigned int minDuration, unsigned int maxDuration)
   : _potentiometerPin(potentiometerPin),
     _minDuration(minDuration),
     _maxDuration(maxDuration) {
@@ -18,10 +18,10 @@ DurationResolver::DurationResolver(unsigned int potentiometerPin, unsigned int m
   _b = 1. * _minDuration - _a * MIN_ANALOG_VALUE;
 }
 
-void DurationResolver::begin() {
+void PotentiometerDurationResolver::begin() {
   pinMode(_potentiometerPin, INPUT_PULLUP);
 }
 
-auto DurationResolver::getDuration() -> unsigned int {
+auto PotentiometerDurationResolver::getDuration() -> unsigned int {
   return _a * analogRead(_potentiometerPin) + _b;
 }

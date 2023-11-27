@@ -1,5 +1,5 @@
-#ifndef __DURATION_RESOLVER__
-#define __DURATION_RESOLVER__
+#ifndef __POTENTIOMETER_DURATION_RESOLVER__
+#define __POTENTIOMETER_DURATION_RESOLVER__
 
 #if defined(ARDUINO) && ARDUINO >= 100
 #include "Arduino.h"
@@ -7,9 +7,11 @@
 #include "WProgram.h"
 #endif
 
-class DurationResolver {
+#include "iDurationResolver.h"
+
+class PotentiometerDurationResolver : public IDurationResolver {
   public:
-    DurationResolver(unsigned int potentiometerPin, unsigned int minDuration, unsigned int maxDuration);
+    PotentiometerDurationResolver(unsigned int potentiometerPin, unsigned int minDuration, unsigned int maxDuration);
     void begin();
     auto getDuration() -> unsigned int;
   private:
