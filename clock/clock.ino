@@ -1,56 +1,203 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <DNSServer.h>
-#include <WiFiManager.h>          // Biblioteca pentru portalul web
+#include <WiFiManager.h>
+#include <time.h>
+#include <Preferences.h>           // Biblioteca pentru salvarea în memoria Flash
+#include <Adafruit_GFX.h>
+#include <Adafruit_NeoMatrix.h>
+#include <Adafruit_NeoPixel.h>
 
-const int BUTTON_PIN = 13;        // Pinul pentru butonul de reset Wi-Fi
-unsigned long buttonPressTime = 0;
-const int RESET_TIMEOUT = 3000;   // Trebuie să ții apăsat 3 secunde pentru reset
+// ==========================================
+// CONFIGURARE HARDWARE & CONSTANTE
+// ==========================================
+const int BUTTON_PIN = 13;
+const int NEOPIXEL_PIN = 14;
+const int RESET_TIMEOUT = 3000;
+const int SHORT_PRESS_TIME = 50;
 
-void setup() {
-    Serial.begin(115200);
-    pinMode(BUTTON_PIN, INPUT_PULLUP);
+// Configurare Matrice NeoPixel (32x8)
+Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(8, 8, 4, 1, NEOPIXEL_PIN,
+  NEO_MATRIX_TOP     + NEO_MATRIX_LEFT +
+  NEO_MATRIX_COLUMNS + NEO_MATRIX_ROWS + NEO_MATRIX_PROGRESSIVE,
+  NEO_GRB            + NEO_KHZ800);
 
-    // Initializare WiFiManager
+// Configurare Fus Orar România
+const char* TZ_INFO = "EET-2EEST,M3.5.0/3,M10.5.0/4"; 
+const char* NTP_SERVER = "pool.ntp.org";
+
+// Obiectul Preferences pentru memorie non-volatilă
+Preferences preferences;
+
+// Variabile globale pentru stări
+unsigned long lastDisplayUpdate = 0;
+bool separatorClipeste = true;
+
+// Variabile pentru gestiunea butonului
+unsigned long buttonPressedMillis = 0;
+bool buttonStateLongPressed = false;
+bool lastButtonState = HIGH;
+
+// Listă de culori predefinite pentru ceas
+uint32_t culori[] = {
+    matrix.Color(255, 0, 0),     // 0: Roșu
+    matrix.Color(0, 255, 0),     // 1: Verde
+    matrix.Color(0, 0, 255),     // 2: Albastru
+    matrix.Color(255, 255, 0),   // 3: Galben
+    matrix.Color(0, 255, 255),   // 4: Cyan
+    matrix.Color(255, 0, 255),   // 5: Magenta
+    matrix.Color(255, 255, 255)  // 6: Alb
+};
+const int NUMAR_CULORI = sizeof(culori) / sizeof(culori);
+int indexCuloareCurenta = 0;     
+uint32_t culoareCeas;
+
+// ==========================================
+// 1. MODULUL AFIȘAJ & MEMORIE
+// ==========================================
+void initializareAfisaj() {
+    matrix.begin();
+    matrix.setTextWrap(false);
+    matrix.setBrightness(30); 
+
+    // Deschidem spațiul de stocare numit "ceas_setari" în mod Read-Only (true)
+    preferences.begin("ceas_setari", true);
+    // Citim indexul salvat. Dacă nu există (e prima pornire), valoarea implicită va fi 0 (Roșu)
+    indexCuloareCurenta = preferences.getInt("index_culoare", 0);
+    preferences.end();
+
+    // Validăm indexul citit ca să fim siguri că nu e în afara vectorului
+    if (indexCuloareCurenta < 0 || indexCuloareCurenta >= NUMAR_CULORI) {
+        indexCuloareCurenta = 0;
+    }
+
+    culoareCeas = culori[indexCuloareCurenta]; 
+    Serial.printf("Culoare încărcată din memorie! Index: %d\n", indexCuloareCurenta);
+}
+
+void afiseazaMesajBoot(String mesaj, uint32_t culoare) {
+    matrix.clear();
+    matrix.setTextColor(culoare);
+    matrix.setCursor(0, 0);
+    matrix.print(mesaj);
+    matrix.show();
+}
+
+void schimbaCuloareCeas() {
+    indexCuloareCurenta = (indexCuloareCurenta + 1) % NUMAR_CULORI;
+    culoareCeas = culori[indexCuloareCurenta];
+    
+    // Deschidem spațiul de stocare în mod Read-Write (false) pentru a salva noul index
+    preferences.begin("ceas_setari", false);
+    preferences.putInt("index_culoare", indexCuloareCurenta);
+    preferences.end();
+    
+    Serial.printf("Culoare schimbată și salvată! Index nou: %d\n", indexCuloareCurenta);
+}
+
+void actualizeazaCeasPeEcran() {
+    struct tm timeinfo;
+    
+    if (!getLocalTime(&timeinfo)) {
+        afiseazaMesajBoot("--:--", matrix.Color(100, 100, 100));
+        Serial.println("Se așteaptă sincronizarea NTP...");
+        return;
+    }
+
+    matrix.clear();
+    matrix.setTextColor(culoareCeas);
+    matrix.setCursor(2, 0); 
+
+    char buffer[6];
+    if (separatorClipeste) {
+        sprintf(buffer, "%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
+    } else {
+        sprintf(buffer, "%02d %02d", timeinfo.tm_hour, timeinfo.tm_min);
+    }
+
+    matrix.print(buffer);
+    matrix.show();
+}
+
+// ==========================================
+// 2. MODULUL WI-FI (WiFiManager)
+// ==========================================
+void ConectareWiFi() {
+    afiseazaMesajBoot("Wi-Fi", matrix.Color(0, 0, 255)); 
+
     WiFiManager wm;
-
-    // Optional: setezi un timeout pentru portal (daca nu se conecteaza nimeni in 3 minute, da restart)
     wm.setConfigPortalTimeout(180); 
 
-    // Incearca conectarea sau deschide Access Point-ul "Ceas_NeoPixel" fara parola
-    // Daca vrei parola la AP, adaugi al doilea parametru: wm.autoConnect("Ceas_NeoPixel", "parola123");
-    if(!wm.autoConnect("Ceas_NeoPixel")) {
-        Serial.println("Nu s-a putut conecta si a expirat timpul de configurare. Restart...");
+    if(!wm.autoConnect("Ceas_NeoPixel_AP")) {
+        Serial.println("Portalul Wi-Fi a expirat. Restart...");
         delay(3000);
         ESP.restart();
     }
 
-    // Daca a ajuns aici, inseamna ca s-a conectat cu succes la Wi-Fi-ul tau!
-    Serial.println("Conectat cu succes la Wi-Fi!");
-    Serial.print("Adresa IP primita: ");
-    Serial.println(WiFi.localIP());
+    Serial.println("Wi-Fi Conectat cu succes!");
+}
 
-    // Aici adaugi initializarea pentru NTP (ora de pe internet) si matricea NeoPixel
+// ==========================================
+// 3. MODULUL TIMP (NTP)
+// ==========================================
+void initializareNTP() {
+    configTzTime(TZ_INFO, NTP_SERVER, "time.nist.gov");
+    Serial.println("Configurare NTP finalizată.");
+}
+
+// ==========================================
+// 4. MODULUL CONTROL (Buton Fizic Inteligent)
+// ==========================================
+void verificaButon() {
+    bool currentButtonState = digitalRead(BUTTON_PIN);
+
+    if (currentButtonState == LOW && lastButtonState == HIGH) {
+        buttonPressedMillis = millis();
+        buttonStateLongPressed = false;
+    }
+
+    if (currentButtonState == LOW) {
+        if ((millis() - buttonPressedMillis > RESET_TIMEOUT) && !buttonStateLongPressed) {
+            buttonStateLongPressed = true;
+            Serial.println("Resetare setări Wi-Fi declanșată...");
+            afiseazaMesajBoot("RESET", matrix.Color(255, 165, 0)); 
+            
+            WiFiManager wm;
+            wm.resetSettings();
+            delay(1500);
+            ESP.restart();
+        }
+    }
+
+    if (currentButtonState == HIGH && lastButtonState == LOW) {
+        if (!buttonStateLongPressed && (millis() - buttonPressedMillis > SHORT_PRESS_TIME)) {
+            schimbaCuloareCeas();
+            actualizeazaCeasPeEcran(); 
+        }
+    }
+
+    lastButtonState = currentButtonState;
+}
+
+// ==========================================
+// STRUCTURA PRINCIPALĂ ARDUINO
+// ==========================================
+void setup() {
+    Serial.begin(115200);
+    pinMode(BUTTON_PIN, INPUT_PULLUP);
+
+    initializareAfisaj(); // Încarcă și culoarea salvată anterior
+    ConectareWiFi();
+    initializareNTP();
 }
 
 void loop() {
-    // Verificam daca butonul de reset este apasat (valoarea este LOW datorita INPUT_PULLUP)
-    if (digitalRead(BUTTON_PIN) == LOW) {
-        if (buttonPressTime == 0) {
-            buttonPressTime = millis(); // Salveaza momentul in care a fost apasat
-        }
+    verificaButon();
 
-        // Daca butonul este tinut apasat mai mult de 3 secunde
-        if (millis() - buttonPressTime > RESET_TIMEOUT) {
-            Serial.println("Resetare date Wi-Fi si repornire...");
-            WiFiManager wm;
-            wm.resetSettings(); // Sterge Wi-Fi-ul salvat din memoria ESP32
-            delay(1000);
-            ESP.restart();      // Reporneste ESP32 (va intra automat in modul Access Point)
-        }
-    } else {
-        buttonPressTime = 0; // Reseteaza cronometrul daca butonul a fost eliberat
+    if (millis() - lastDisplayUpdate >= 500) {
+        lastDisplayUpdate = millis();
+        separatorClipeste = !separatorClipeste; 
+        
+        actualizeazaCeasPeEcran();
     }
-
-    // Codul tau pentru actualizarea ceasului si afisarea pe NeoPixeli ruleaza aici...
 }

@@ -8,6 +8,8 @@ _autosave-*.*
 
 *.zip
 
+**/.vscode
+
 # Prerequisites
 *.d
 
