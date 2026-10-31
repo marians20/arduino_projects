@@ -6,6 +6,7 @@ fp-info-cache
 #auto_saved_files#
 _autosave-*.*
 
+/**/.DS_Store
 *.zip
 
 **/.vscode
