@@ -43,11 +43,11 @@ bool lastButtonState = HIGH;
 
 // Listă de culori predefinite pentru ceas
 uint32_t culori[] = {
+  matrix.Color(0, 64, 128),   // 4: Cyan
   matrix.Color(255, 0, 0),     // 0: Roșu
   matrix.Color(0, 255, 0),     // 1: Verde
   matrix.Color(0, 0, 255),     // 2: Albastru
   matrix.Color(255, 255, 0),   // 3: Galben
-  matrix.Color(0, 255, 255),   // 4: Cyan
   matrix.Color(255, 0, 255),   // 5: Magenta
   matrix.Color(255, 255, 255)  // 6: Alb
 };
